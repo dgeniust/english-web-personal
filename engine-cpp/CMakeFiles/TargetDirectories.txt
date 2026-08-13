@@ -1,0 +1,3 @@
+D:/vocab-mastery/engine-cpp/CMakeFiles/VocabEngine.dir
+D:/vocab-mastery/engine-cpp/CMakeFiles/ALL_BUILD.dir
+D:/vocab-mastery/engine-cpp/CMakeFiles/ZERO_CHECK.dir

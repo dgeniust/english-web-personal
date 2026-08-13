@@ -1,0 +1,60 @@
+# ==========================================
+# 1. Environment Variables & Credentials (BẢO MẬT)
+# ==========================================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.pem
+*.key
+
+# ==========================================
+# 2. IDE & Code Editors (Cấu hình cá nhân)
+# ==========================================
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ==========================================
+# 3. Dependencies & Build Output
+# ==========================================
+node_modules/
+dist/
+build/
+out/
+.tscache/
+*.tsbuildinfo
+
+# ==========================================
+# 4. Logs & Debugging
+# ==========================================
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# ==========================================
+# 5. Operating System Files (File rác của OS)
+# ==========================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ==========================================
+# 6. Testing & Coverage
+# ==========================================
+coverage/
+.nyc_output/
