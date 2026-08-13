@@ -6,7 +6,8 @@ export interface IWord extends Document {
   deckIds: mongoose.Types.ObjectId[]; // Liên kết nhiều kho từ con (1 từ có thể ở nhiều kho)
   term: string;
   meaning: string;
-  type?: string;
+  englishMeaning?: string;
+  type?: WordType;
   ipa?: string;
   audioUrl?: string;
   tags: string[];
@@ -16,7 +17,18 @@ export interface IWord extends Document {
   nextReviewDate: Date;
   createdAt: Date;
 }
-
+export enum WordType {
+  NOUN = "noun",
+  VERB = "verb",
+  ADJECTIVE = "adjective",
+  ADVERB = "adverb",
+  PRONOUN = "pronoun",
+  PREPOSITION = "preposition",
+  CONJUNCTION = "conjunction",
+  INTERJECTION = "interjection",
+  PHRASE = "phrase",
+  OTHER = "other", // Dùng cho trường hợp ngoại lệ
+}
 const wordSchema = new Schema<IWord>({
   // Liên kết User
   userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
@@ -26,7 +38,12 @@ const wordSchema = new Schema<IWord>({
 
   term: { type: String, required: true, trim: true },
   meaning: { type: String, required: true },
-  type: { type: String },
+  englishMeaning: { type: String },
+  type: {
+    type: String,
+    enum: Object.values(WordType), // Chỉ cho phép các giá trị nằm trong WordType
+    default: WordType.NOUN,
+  },
   ipa: { type: String },
   audioUrl: { type: String },
   tags: [{ type: String }],

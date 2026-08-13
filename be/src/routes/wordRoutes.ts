@@ -45,6 +45,10 @@ router.get("/dashboard", protect, getDashboardStats);
  *                 items:
  *                   type: string
  *                 example: ["toeic-part-1", "IT-terms"]
+ *               type:
+ *                 type: string
+ *                 enum: ["noun", "verb", "adjective", "adverb", "pronoun", "preposition", "conjunction", "interjection", "phrase", "other"]
+ *                 example: "noun"
  *     responses:
  *       201:
  *         description: Thêm từ vựng thành công

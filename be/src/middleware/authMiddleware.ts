@@ -8,7 +8,9 @@ export interface AuthRequest extends express.Request {
 interface JwtPayload {
   id: string;
 }
-
+export interface AuthRequest extends express.Request {
+  userId?: string;
+}
 export const protect = (
   req: AuthRequest,
   res: express.Response,
