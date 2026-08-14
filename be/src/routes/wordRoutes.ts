@@ -3,6 +3,7 @@ import {
   addWord,
   getDashboardStats,
   getReviewList,
+  getWords,
   submitReviewResult,
 } from "../controllers/wordController.js";
 import { protect } from "../middleware/authMiddleware.js";
@@ -15,6 +16,8 @@ const router = Router();
  *     summary: Lấy thống kê cho Dashboard
  *     tags:
  *       - Words
+ *     security:
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: Trả về số lượng tổng số từ và số từ cần ôn hôm nay.
@@ -24,10 +27,43 @@ router.get("/dashboard", protect, getDashboardStats);
 /**
  * @openapi
  * /api/words:
+ *   get:
+ *     summary: Lấy danh sách tất cả các từ vựng
+ *     tags:
+ *       - Words
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         description: Số trang hiện tại (mặc định 1)
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: Số lượng từ trên mỗi trang (mặc định 20)
+ *       - in: query
+ *         name: deckId
+ *         schema:
+ *           type: string
+ *         description: ID của bộ từ (Tùy chọn)
+ *     responses:
+ *       200:
+ *         description: Trả về danh sách tất cả các từ vựng.
+ */
+router.get("/", protect, getWords);
+
+/**
+ * @openapi
+ * /api/words:
  *   post:
  *     summary: Thêm từ vựng mới (Tự động fetch IPA, nghĩa)
  *     tags:
  *       - Words
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -49,11 +85,14 @@ router.get("/dashboard", protect, getDashboardStats);
  *                 type: string
  *                 enum: ["noun", "verb", "adjective", "adverb", "pronoun", "preposition", "conjunction", "interjection", "phrase", "other"]
  *                 example: "noun"
+ *               meaning:
+ *                 type: string
+ *                 example: "Ví dụ"
  *     responses:
  *       201:
  *         description: Thêm từ vựng thành công
  */
-router.post("/words", protect, addWord);
+router.post("/", protect, addWord);
 
 /**
  * @openapi
@@ -62,11 +101,13 @@ router.post("/words", protect, addWord);
  *     summary: Lấy danh sách các từ đến hạn ôn tập (Spaced Repetition)
  *     tags:
  *       - Words
+ *     security:
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: Danh sách các từ cần ôn tập
  */
-router.get("/words/review", protect, getReviewList);
+router.get("/review", protect, getReviewList);
 
 /**
  * @openapi
@@ -75,6 +116,8 @@ router.get("/words/review", protect, getReviewList);
  *     summary: Cập nhật kết quả sau khi ôn tập (Game/Flashcard)
  *     tags:
  *       - Words
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: wordId

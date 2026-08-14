@@ -1,8 +1,5 @@
-@import url("https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Caveat:wght@400;600&family=Inter:wght@400;500;600&display=swap");
-
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import url("https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Playwrite+GB+S:ital,wght@0,100..400;1,100..400&display=swap");
+@import "tailwindcss";
 
 @layer base {
   :root {
@@ -17,7 +14,12 @@
   }
 
   body {
-    @apply bg-[var(--color-cream-paper)] text-[var(--color-charcoal)] font-sans min-h-screen overflow-x-hidden;
+    /* Viết CSS thuộc tính màu trực tiếp thay vì bọc trong @apply */
+    background-color: var(--color-cream-paper);
+    color: var(--color-charcoal);
+    font-family: "Inter", sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
   }
 }
 
@@ -26,6 +28,6 @@
     font-family: "DM Serif Display", serif;
   }
   .font-handwriting {
-    font-family: "Caveat", cursive;
+    font-family: "Playwrite GB S", cursive;
   }
 }
