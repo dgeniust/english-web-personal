@@ -88,6 +88,12 @@ router.get("/", protect, getWords);
  *               meaning:
  *                 type: string
  *                 example: "Ví dụ"
+ *               inputSynonyms:
+ *                 type: array
+ *                 items:
+ *                  type: string
+ *                  example: ["sample", "instance"]
+ *
  *     responses:
  *       201:
  *         description: Thêm từ vựng thành công

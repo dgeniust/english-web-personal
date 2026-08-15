@@ -1,3 +1,5 @@
+import GameFlashCard from "./pages/GameFlashCard";
+import GameRememberCard from "./pages/GameRememberCard";
 import { Home } from "./pages/Home";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 export default function App() {
@@ -7,6 +9,8 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/flash-card" element={<GameFlashCard />} />
+        <Route path="/remember-card" element={<GameRememberCard />} />
       </Routes>
     </BrowserRouter>
   );

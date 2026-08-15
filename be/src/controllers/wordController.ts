@@ -4,9 +4,11 @@ import axios from "axios";
 import type { AuthRequest } from "../middleware/authMiddleware.js";
 
 import { calculateNextReview } from "../utils/srsAlgorithm.js";
+import { toWordResponseDto } from "../dtos/word.dto.js";
+import SynonymGroup from "../models/SynonymGroup.js";
 export const addWord = async (req: AuthRequest, res: express.Response) => {
   try {
-    const { term, tags, deckIds, meaning, type } = req.body;
+    const { term, tags, meaning, type, inputSynonyms } = req.body;
     const currentUserId = req.userId as string;
     let ipa = "";
     let englishMeaning = "";
@@ -25,7 +27,7 @@ export const addWord = async (req: AuthRequest, res: express.Response) => {
     const audioUrl = "https://your-storage.com/audio/sample.mp3"; // Mock URL
 
     // Lưu vào Database với ID người dùng
-    const newWord = new Word({
+    let newWord = new Word({
       term,
       meaning,
       englishMeaning,
@@ -33,9 +35,79 @@ export const addWord = async (req: AuthRequest, res: express.Response) => {
       ipa,
       audioUrl,
       tags: tags || [],
-      deckIds: deckIds || [],
+      deckIds: [],
+      userId: currentUserId,
+      textSynonyms: [],
+    });
+    let existingWords: any[] = [];
+    if (inputSynonyms && inputSynonyms.length > 0) {
+      existingWords = await Word.find({
+        term: { $in: inputSynonyms },
+        userId: currentUserId,
+      });
+      const existingTerms = existingWords.map((w) => w.term);
+      const ghostSynonyms = inputSynonyms.filter(
+        (t: string) => !existingTerms.includes(t),
+      );
+      newWord.textSynonyms = ghostSynonyms;
+    }
+    const pastWordsWaitingForThis = await Word.find({
+      textSynonyms: term,
       userId: currentUserId,
     });
+    const allRelatedWords = [...existingWords, ...pastWordsWaitingForThis];
+    if (allRelatedWords.length > 0) {
+      let targetGroupId = null;
+
+      // Dò xem trong đống từ liên kết này, có từ nào đã có group chưa?
+      for (const w of allRelatedWords) {
+        if (w.synonymGroupId) {
+          targetGroupId = w.synonymGroupId;
+          break; // Lấy group đầu tiên tìm thấy
+        }
+      }
+
+      const allRelatedWordIds = allRelatedWords.map((w) => w._id);
+      const allIdsForGroup = [newWord._id, ...allRelatedWordIds];
+
+      if (targetGroupId) {
+        // TRƯỜNG HỢP A: Đã có group -> Nhét tất cả ID vào group cũ
+        await SynonymGroup.findByIdAndUpdate(targetGroupId, {
+          $addToSet: { wordIds: { $each: allIdsForGroup } },
+        });
+
+        newWord.synonymGroupId = targetGroupId;
+
+        // Cập nhật group ID cho các từ cũ (đề phòng vài từ chưa có)
+        await Word.updateMany(
+          { _id: { $in: allRelatedWordIds } },
+          { $set: { synonymGroupId: targetGroupId } },
+        );
+      } else {
+        // TRƯỜNG HỢP B: Chưa có group nào -> Tạo nhóm mới hoàn toàn
+        const newGroup = await SynonymGroup.create({
+          userId: currentUserId,
+          wordIds: allIdsForGroup,
+        });
+
+        newWord.synonymGroupId = newGroup._id;
+
+        // Cập nhật group ID cho các từ cũ
+        await Word.updateMany(
+          { _id: { $in: allRelatedWordIds } },
+          { $set: { synonymGroupId: newGroup._id } },
+        );
+      }
+    }
+
+    // 6. XÓA chữ mới ra khỏi mảng textSynonyms của các từ quá khứ
+    // (Vì bây giờ chúng nó đã chính thức nhận họ hàng qua SynonymGroup rồi)
+    if (pastWordsWaitingForThis.length > 0) {
+      await Word.updateMany(
+        { _id: { $in: pastWordsWaitingForThis.map((w) => w._id) } },
+        { $pull: { textSynonyms: term } },
+      );
+    }
 
     await newWord.save();
     res.status(201).json({ message: "Thêm từ vựng thành công", word: newWord });
@@ -79,7 +151,7 @@ export const getWords = async (req: AuthRequest, res: express.Response) => {
 
     // 5. Trả về format chuẩn bao gồm data và metadata phân trang
     res.status(200).json({
-      data: words,
+      data: words.map(toWordResponseDto),
       pagination: {
         totalItems,
         totalPages,
@@ -142,7 +214,6 @@ export const getDashboardStats = async (
     const now = new Date();
     const currentUserId = req.userId as string; // Lấy ID user đang đăng nhập
 
-    // FIX LOGIC: Chỉ đếm số từ của user này
     const totalWords = await Word.countDocuments({ userId: currentUserId });
 
     const wordsToReviewToday = await Word.countDocuments({

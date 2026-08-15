@@ -7,7 +7,7 @@ export interface IWord extends Document {
   term: string;
   meaning: string;
   englishMeaning?: string;
-  type?: WordType;
+  type: WordType;
   ipa?: string;
   audioUrl?: string;
   tags: string[];
@@ -16,6 +16,8 @@ export interface IWord extends Document {
   efactor: number;
   nextReviewDate: Date;
   createdAt: Date;
+  synonymGroupId?: mongoose.Types.ObjectId;
+  textSynonyms: string[];
 }
 export enum WordType {
   NOUN = "noun",
@@ -54,6 +56,9 @@ const wordSchema = new Schema<IWord>({
   nextReviewDate: { type: Date, default: Date.now },
 
   createdAt: { type: Date, default: Date.now },
+  synonymGroupId: { type: mongoose.Schema.Types.ObjectId, ref: "SynonymGroup" },
+
+  textSynonyms: [{ type: String, trim: true, lowercase: true }],
 });
 
 // Đánh Index để tăng tốc độ query lấy Flashcard/Quiz
