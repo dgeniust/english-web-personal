@@ -14,4 +14,4 @@ include_directories(include)
 include_directories(.) # Thêm thư mục hiện tại để tìm Trie.hpp
 
 # SỬA DÒNG NÀY: Bổ sung Trie.cpp vào danh sách source files
-add_executable(VocabEngine main.cpp Trie.cpp)
+add_executable(VocabEngine main.cpp Trie.cpp SpellChecker.cpp)

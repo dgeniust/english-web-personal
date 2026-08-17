@@ -381,13 +381,14 @@ export const RememberCardGame: React.FC = () => {
                     mass: 0.8,
                     delay: isDealt ? 0 : i * 0.05,
                   }}
-                  className="absolute bottom-0 w-[80px] h-[120px] sm:w-[110px] sm:h-[160px] rounded-xl bg-zinc-800 border-2 border-stone-600 shadow-xl cursor-pointer hover:border-amber-400 flex items-center justify-center p-1.5"
+                  className="absolute bottom-0 w-[140px] h-[180px] sm:w-[170px] sm:h-[220px] rounded-xl bg-zinc-800 border-2 border-stone-600 shadow-xl cursor-pointer hover:border-amber-400 flex items-center justify-center p-1.5"
                 >
-                  <div className="w-full h-full border border-stone-500/50 rounded-lg flex flex-col items-center justify-center relative overflow-hidden bg-gradient-to-b from-zinc-900 to-zinc-800">
-                    <div className="w-6 h-6 sm:w-10 sm:h-10 rounded-full border border-amber-300/40 flex items-center justify-center">
-                      <div className="w-2.5 h-2.5 sm:w-4 sm:h-4 rotate-45 border border-amber-300/60 bg-amber-500/10" />
-                    </div>
-                  </div>
+                  <img
+                    src="https://i.pinimg.com/736x/1a/6a/af/1a6aaf36529cf70e9ab47b02be2b4d4e.jpg"
+                    alt="Mặt sau thẻ bài"
+                    className="w-full h-full object-cover select-none pointer-events-none"
+                    draggable={false}
+                  />
                 </motion.div>
               );
             })}

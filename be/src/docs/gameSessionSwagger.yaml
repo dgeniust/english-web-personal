@@ -1,0 +1,146 @@
+paths:
+  /api/games/sessions:
+    post:
+      summary: Tạo một phiên trò chơi mới (Game Session)
+      tags:
+        - Game
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - type
+              properties:
+                type:
+                  type: string
+                  enum: [quiz, remember-card, flash-card]
+                  description: Loại trò chơi
+                isRandom:
+                  type: boolean
+                  description: Chọn true nếu muốn hệ thống tự random từ vựng
+                  default: false
+                randomLimit:
+                  type: integer
+                  description: Số lượng từ cần random (nếu isRandom = true)
+                  example: 10
+                wordIds:
+                  type: array
+                  description: Danh sách ID các từ vựng cụ thể (nếu isRandom = false)
+                  items:
+                    type: string
+                    example: "60d5ecb8b392d700153ef29c"
+      responses:
+        "201":
+          description: Tạo thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Tạo phiên trò chơi thành công
+                  data:
+                    type: object
+                    properties:
+                      _id:
+                        type: string
+                      userId:
+                        type: string
+                      type:
+                        type: string
+                      words:
+                        type: array
+                        items:
+                          type: string
+                      status:
+                        type: string
+                      score:
+                        type: integer
+                      startTime:
+                        type: string
+                        format: date-time
+        "400":
+          description: Dữ liệu đầu vào không hợp lệ
+        "401":
+          description: Chưa đăng nhập (Unauthorized)
+  /api/games/sessions/{sessionId}:
+    get:
+      summary: Lấy chi tiết phiên trò chơi
+      tags:
+        - Game
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: sessionId
+          required: true
+          schema:
+            type: string
+          description: ID của phiên trò chơi
+      responses:
+        "200":
+          description: Lấy chi tiết thành công (đã populate danh sách words)
+        "404":
+          description: Không tìm thấy phiên trò chơi
+
+  /api/games/sessions/{sessionId}/start:
+    patch:
+      summary: Bắt đầu trò chơi (Cập nhật startTime)
+      tags:
+        - Game
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: sessionId
+          required: true
+          schema:
+            type: string
+          description: ID của phiên trò chơi
+      responses:
+        "200":
+          description: Bắt đầu trò chơi thành công
+        "400":
+          description: Trò chơi đã kết thúc hoặc không ở trạng thái playing
+        "404":
+          description: Không tìm thấy phiên trò chơi
+
+  /api/games/sessions/{sessionId}/submit:
+    post:
+      summary: Nộp bài, chấm điểm và lưu Game Record
+      tags:
+        - Game
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: sessionId
+          required: true
+          schema:
+            type: string
+          description: ID của phiên trò chơi
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - score
+              properties:
+                score:
+                  type: integer
+                  description: Điểm số đạt được của người dùng
+                  example: 85
+      responses:
+        "200":
+          description: Nộp bài thành công, trả về session đã update và game record
+        "400":
+          description: Dữ liệu gửi lên không hợp lệ hoặc trò chơi đã được nộp
+        "404":
+          description: Không tìm thấy phiên trò chơi

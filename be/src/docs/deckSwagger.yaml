@@ -1,0 +1,179 @@
+components:
+  schemas:
+    Word:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "64f1a2b3c4d5e6f7a8b9c111"
+        term:
+          type: string
+          example: "abandon"
+        meaning:
+          type: string
+          example: "từ bỏ, ruồng bỏ"
+        englishMeaning:
+          type: string
+          example: "to leave somebody, especially somebody you are responsible for"
+        type:
+          type: string
+          example: "verb"
+        ipa:
+          type: string
+          example: "/əˈbæn.dən/"
+        audioUrl:
+          type: string
+          example: "https://your-storage.com/audio/sample.mp3"
+        deckIds:
+          type: array
+          items:
+            type: string
+          example: ["64f1a2b3c4d5e6f7a8b9c0d1"]
+        tags:
+          type: array
+          items:
+            type: string
+          example: ["toeic", "verb"]
+        createdAt:
+          type: string
+          format: date-time
+    Deck:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "64f1a2b3c4d5e6f7a8b9c0d1"
+        userId:
+          type: string
+          example: "64f1a2b3c4d5e6f7a8b9c0d0"
+        name:
+          type: string
+          example: "Từ vựng TOEIC Part 1"
+        description:
+          type: string
+          example: "Mục tiêu đạt 800+ TOEIC"
+        createdAt:
+          type: string
+          format: date-time
+    DeckInput:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          example: "Từ vựng TOEIC Part 1"
+        description:
+          type: string
+          example: "Mục tiêu đạt 800+ TOEIC"
+    DeckWithWords:
+      allOf:
+        - $ref: "#/components/schemas/Deck"
+        - type: object
+          properties:
+            totalWords:
+              type: integer
+              example: 2
+            words:
+              type: array
+              items:
+                $ref: "#/components/schemas/Word"
+
+paths:
+  /api/decks:
+    get:
+      summary: Lấy danh sách tất cả các kho từ
+      tags: [Decks]
+      responses:
+        "200":
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Deck"
+    post:
+      summary: Tạo kho từ mới
+      tags: [Decks]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeckInput"
+      responses:
+        "201":
+          description: Tạo thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Tạo kho từ thành công"
+                  deck:
+                    $ref: "#/components/schemas/Deck"
+
+  /api/decks/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        description: ID của kho từ
+    get:
+      summary: Xem chi tiết kho từ (Kèm danh sách từ vựng)
+      tags: [Decks]
+      responses:
+        "200":
+          description: Thành công
+    put:
+      summary: Cập nhật thông tin kho từ
+      tags: [Decks]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeckInput"
+      responses:
+        "200":
+          description: Cập nhật thành công
+    delete:
+      summary: Xóa kho từ
+      tags: [Decks]
+      responses:
+        "200":
+          description: Xóa thành công
+  /api/decks/with-words/storage:
+    get:
+      summary: Lấy danh sách tất cả các kho từ kèm toàn bộ từ vựng bên trong
+      tags: [Decks]
+      responses:
+        "200":
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Tải danh sách các kho từ và từ vựng thành công"
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/DeckWithWords"
+        "500":
+          description: Lỗi máy chủ
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Lỗi tải danh sách kho từ và từ vựng"

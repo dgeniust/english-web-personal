@@ -1,0 +1,209 @@
+components:
+  schemas:
+    WordInput:
+      type: object
+      required:
+        - term
+      properties:
+        term:
+          type: string
+          example: "abandon"
+        meaning:
+          type: string
+          example: "từ bỏ, ruồng bỏ"
+        type:
+          type: string
+          example: "verb"
+        tags:
+          type: array
+          items:
+            type: string
+          example: ["toeic", "verb"]
+        inputSynonyms:
+          type: array
+          items:
+            type: string
+          example: ["leave", "give up"]
+
+    ReviewInput:
+      type: object
+      required:
+        - grade
+      properties:
+        grade:
+          type: integer
+          minimum: 0
+          maximum: 5
+          description: "0-2: Khó/Quên, 3: Bình thường, 4-5: Dễ"
+          example: 4
+    AddToDeckInput:
+      type: object
+      required:
+        - deckId
+        - wordIds
+      properties:
+        deckId:
+          type: string
+          example: "64f1a2b3c4d5e6f7a8b9c0d1"
+        wordIds:
+          type: array
+          items:
+            type: string
+          example: ["64f1a2b3c4d5e6f7a8b9c111", "64f1a2b3c4d5e6f7a8b9c222"]
+    Word:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "64f1a2b3c4d5e6f7a8b9c111"
+        term:
+          type: string
+          example: "abandon"
+        meaning:
+          type: string
+          example: "từ bỏ, ruồng bỏ"
+        englishMeaning:
+          type: string
+          example: "to leave somebody, especially somebody you are responsible for"
+        type:
+          type: string
+          example: "verb"
+        ipa:
+          type: string
+          example: "/əˈbæn.dən/"
+        audioUrl:
+          type: string
+          example: "https://your-storage.com/audio/sample.mp3"
+        deckIds:
+          type: array
+          items:
+            type: string
+          example: ["64f1a2b3c4d5e6f7a8b9c0d1"]
+        tags:
+          type: array
+          items:
+            type: string
+          example: ["toeic", "verb"]
+        createdAt:
+          type: string
+          format: date-time
+
+paths:
+  /api/dashboard:
+    get:
+      summary: Lấy thống kê cho Dashboard
+      tags: [Words]
+      responses:
+        "200":
+          description: Trả về số lượng tổng số từ và số từ cần ôn hôm nay.
+
+  /api/words:
+    get:
+      summary: Lấy danh sách tất cả các từ vựng (Có phân trang)
+      tags: [Words]
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+          description: Trang hiện tại (Mặc định 1)
+        - in: query
+          name: limit
+          schema:
+            type: integer
+          description: Số item mỗi trang (Mặc định 20)
+        - in: query
+          name: deckId
+          schema:
+            type: string
+          description: Lọc theo ID của kho từ (Tùy chọn)
+      responses:
+        "200":
+          description: Thành công
+
+    post:
+      summary: Thêm từ vựng mới (Tự động fetch IPA, nghĩa tiếng Anh)
+      tags: [Words]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WordInput"
+      responses:
+        "201":
+          description: Thêm từ vựng thành công
+
+  /api/words/{wordId}:
+    parameters:
+      - in: path
+        name: wordId
+        required: true
+        schema:
+          type: string
+        description: ID của từ vựng
+    put:
+      summary: Cập nhật thông tin từ vựng
+      tags: [Words]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WordInput"
+      responses:
+        "200":
+          description: Cập nhật thành công
+    delete:
+      summary: Xóa từ vựng
+      tags: [Words]
+      responses:
+        "200":
+          description: Xóa thành công
+
+  /api/words/review:
+    get:
+      summary: Lấy danh sách các từ đến hạn ôn tập (Spaced Repetition)
+      tags: [Words]
+      parameters:
+        - in: query
+          name: deckId
+          schema:
+            type: string
+          description: Lọc bài ôn tập theo ID kho từ (Tùy chọn)
+      responses:
+        "200":
+          description: Thành công
+
+  /api/words/{wordId}/review:
+    post:
+      summary: Gửi kết quả sau khi ôn tập (Chấm điểm 0-5)
+      tags: [Words]
+      parameters:
+        - in: path
+          name: wordId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReviewInput"
+      responses:
+        "200":
+          description: Cập nhật tiến độ thành công
+  /api/words/add-to-deck:
+    post:
+      summary: Thêm các từ vào các collection
+      tags: [Words]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddToDeckInput"
+      responses:
+        "200":
+          description: Thêm từ vựng vào Collection thành công

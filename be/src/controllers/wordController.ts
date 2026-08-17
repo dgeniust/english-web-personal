@@ -6,6 +6,8 @@ import type { AuthRequest } from "../middleware/authMiddleware.js";
 import { calculateNextReview } from "../utils/srsAlgorithm.js";
 import { toWordResponseDto } from "../dtos/word.dto.js";
 import SynonymGroup from "../models/SynonymGroup.js";
+import User from "../models/User.js";
+import { grantAchievement } from "../services/achievementService.js";
 export const addWord = async (req: AuthRequest, res: express.Response) => {
   try {
     const { term, tags, meaning, type, inputSynonyms } = req.body;
@@ -110,11 +112,55 @@ export const addWord = async (req: AuthRequest, res: express.Response) => {
     }
 
     await newWord.save();
+    try {
+      await fetch("http://localhost:8080/api/add_word", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ word: newWord.term }),
+      });
+      console.log(`Đã đồng bộ từ "${newWord}" sang C++ Engine`);
+    } catch (cppError) {
+      console.error("C++ Engine chưa nhận được từ mới:", cppError);
+      // Lưu ý: Không ném lỗi ở đây để tránh làm hỏng luồng trả về cho người dùng
+      // vì từ đã được lưu vào DB thành công rồi.
+    }
+    const updatedUser = await User.findByIdAndUpdate(
+      currentUserId,
+      { $inc: { totalWordsAdded: 1 } }, // Tăng biến đếm lên 1 với hiệu suất cực cao
+      { new: true },
+    );
+    if (updatedUser) {
+      if (updatedUser.totalWordsAdded === 100) {
+        grantAchievement(currentUserId, "100_WORDS");
+      } else if (updatedUser.totalWordsAdded === 200) {
+        grantAchievement(currentUserId, "200_WORDS");
+      }
+    }
     res.status(201).json({ message: "Thêm từ vựng thành công", word: newWord });
   } catch (error) {
     res
       .status(500)
       .json({ error: "Lỗi khi thêm từ vựng hoặc từ không tồn tại." });
+  }
+};
+export const addWordsToSingleDeck = async (
+  req: AuthRequest,
+  res: express.Response,
+) => {
+  try {
+    const userId = req.userId as string;
+    const { wordIds, deckId } = req.body; // client gửi mảng wordIds và 1 deckId
+
+    await Word.updateMany(
+      { _id: { $in: wordIds }, userId: userId },
+      { $addToSet: { deckIds: deckId } },
+    );
+
+    res
+      .status(200)
+      .json({ message: "Đã thêm danh sách từ vào kho thành công!" });
+  } catch (error) {
+    res.status(500).json({ error: "Lỗi hệ thống." });
   }
 };
 export const getWords = async (req: AuthRequest, res: express.Response) => {

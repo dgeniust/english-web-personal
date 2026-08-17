@@ -26,9 +26,10 @@ const options: swaggerJSDoc.Options = {
         },
       },
     },
+    security: [{ bearerAuth: [] }],
   },
   // Đường dẫn đến các file chứa Annotation Swagger (JSDoc)
-  apis: ["./src/routes/*.ts"],
+  apis: ["./src/routes/*.ts", "./src/docs/*.yaml", "./src/index.ts"],
 };
 
 export const swaggerSpec = swaggerJSDoc(options);

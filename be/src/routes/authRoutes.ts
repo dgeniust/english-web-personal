@@ -10,6 +10,7 @@ const router = Router();
  *     summary: "Đăng ký tài khoản người dùng mới"
  *     tags:
  *       - Authentication
+ *     security: []
  *     requestBody:
  *       required: true
  *       content:
@@ -66,6 +67,7 @@ router.post("/register", register);
  *     summary: "Đăng nhập hệ thống"
  *     tags:
  *       - Authentication
+ *     security: []
  *     requestBody:
  *       required: true
  *       content:
@@ -79,11 +81,11 @@ router.post("/register", register);
  *               email:
  *                 type: string
  *                 format: email
- *                 example: "user@example.com"
+ *                 example: "halan"
  *               password:
  *                 type: string
  *                 format: password
- *                 example: "password123"
+ *                 example: "halan2810"
  *     responses:
  *       200:
  *         description: "Đăng nhập thành công và trả về JWT Token"

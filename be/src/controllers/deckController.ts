@@ -2,7 +2,7 @@ import express from "express";
 import Deck from "../models/Deck.js";
 import Word from "../models/Word.js";
 import type { AuthRequest } from "../middleware/authMiddleware.js";
-
+import mongoose from "mongoose";
 // Lấy danh sách tất cả các kho từ của người dùng
 export const getDecks = async (req: AuthRequest, res: express.Response) => {
   try {
@@ -33,19 +33,29 @@ export const createDeck = async (req: AuthRequest, res: express.Response) => {
 export const getDeckById = async (req: AuthRequest, res: express.Response) => {
   try {
     const userId = req.userId as string;
-    const deckId = req.params.id;
-    const queryFilter: Record<string, any> = {
+    const deckId = req.params.id as string;
+
+    if (!deckId) {
+      res.status(400).json({ error: "Thiếu ID kho từ" });
+      return;
+    }
+
+    // Truy vấn Deck (tìm theo _id của Deck)
+    const deck = await Deck.findOne({
       _id: deckId,
       userId: userId,
-    };
-    const deck = await Deck.findOne(queryFilter);
+    });
+
     if (!deck) {
       res.status(404).json({ error: "Không tìm thấy kho từ" });
       return;
     }
 
-    // Lấy tất cả từ vựng có chứa deckId này
-    const wordsInDeck = await Word.find(queryFilter);
+    // Truy vấn Word (tìm theo trường deckIds)
+    const wordsInDeck = await Word.find({
+      deckIds: deckId,
+      userId: userId,
+    });
 
     res.status(200).json({
       deck,
@@ -61,14 +71,11 @@ export const getDeckById = async (req: AuthRequest, res: express.Response) => {
 export const updateDeck = async (req: AuthRequest, res: express.Response) => {
   try {
     const userId = req.userId as string;
-    const deckId = req.params.id;
+    const deckId = req.params.id as string;
     const { name, description } = req.body;
-    const queryFilter: Record<string, any> = {
-      _id: deckId,
-      userId: userId,
-    };
+
     const updatedDeck = await Deck.findOneAndUpdate(
-      queryFilter,
+      { _id: deckId, userId },
       { name, description },
       { new: true },
     );
@@ -87,24 +94,60 @@ export const updateDeck = async (req: AuthRequest, res: express.Response) => {
 export const deleteDeck = async (req: AuthRequest, res: express.Response) => {
   try {
     const userId = req.userId as string;
-    const deckId = req.params.id;
+    const deckId = req.params.id as string;
 
-    const queryFilter: Record<string, any> = {
-      _id: deckId,
-      userId: userId,
-    };
-
-    const deck = await Deck.findOneAndDelete(queryFilter);
+    const deck = await Deck.findOneAndDelete({ _id: deckId, userId });
     if (!deck) {
       res.status(404).json({ error: "Không tìm thấy kho từ" });
       return;
     }
 
-    // Gỡ deckId này khỏi tất cả các từ vựng đang chứa nó
-    await Word.updateMany(queryFilter, { $pull: { deckIds: deckId } });
+    // Gỡ deckId khỏi mảng deckIds của Word
+    await Word.updateMany(
+      { deckIds: deckId, userId },
+      { $pull: { deckIds: deckId } },
+    );
 
     res.status(200).json({ message: "Xóa kho từ thành công" });
   } catch (error) {
     res.status(500).json({ error: "Lỗi khi xóa kho từ" });
+  }
+};
+export const getAllDesksWithWords = async (
+  req: AuthRequest,
+  res: express.Response,
+) => {
+  try {
+    const userId = req.userId as string;
+    const decksWithWords = await Deck.aggregate([
+      {
+        $match: { userId: new mongoose.Types.ObjectId(userId) },
+      },
+      {
+        $lookup: {
+          from: "words",
+          localField: "_id",
+          foreignField: "deckIds",
+          as: "words",
+        },
+      },
+      {
+        $addFields: {
+          totalWords: { $size: "$words" },
+        },
+      },
+      {
+        $sort: {
+          createAt: -1,
+        },
+      },
+    ]);
+    res.status(200).json({
+      message: "Tải danh sách các kho từ và từ vựng thành công",
+      data: decksWithWords,
+    });
+  } catch (error) {
+    console.error("Lỗi getAllDecksWithWords:", error);
+    res.status(500).json({ error: "Lỗi tải danh sách kho từ và từ vựng" });
   }
 };

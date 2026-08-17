@@ -1,6 +1,5 @@
 #include "include/crow_all.h" // Đảm bảo đường dẫn này trỏ đúng file header của Crow
 #include <iostream>
-#include <fstream>
 #include <chrono>
 #include <vector>
 #include <cctype>
@@ -33,36 +32,20 @@ int main() {
     InvertedIndex docIndex;
     LRUCache cache(100); // Tăng dung lượng Cache lên 100 cho server
     std::vector<std::string> fullDictionary;
-    std::mutex cacheMutex; // Mutex bảo vệ Cache trong môi trường đa luồng
+    
+    // Khai báo Mutex ở đây để dùng chung cho toàn bộ các luồng (cache và data)
+    std::mutex cacheMutex; 
+    std::mutex dataMutex;  
 
     // ==========================================
     // KHỞI TẠO DỮ LIỆU KHI START SERVER
     // ==========================================
-    std::cout << "[System] Dang tai tu dien vao bo nho..." << std::endl;
-    std::ifstream file("data/dictionary.txt"); 
-    if (!file.is_open()) {
-        std::cerr << "[Error] Khong the mo file data/dictionary.txt!\n";
-        return 1;
-    }
-
-    std::string word;
-    int wordCount = 0;
-    while (std::getline(file, word)) {
-        std::string cleanWord = normalizeString(word);
-        if (!cleanWord.empty()) {
-            engine.insert(cleanWord);
-            fullDictionary.push_back(cleanWord);
-            wordCount++;
-        }
-    }
-    file.close();
-    std::cout << "[System] Da tai " << wordCount << " tu vựng!\n";
-
     std::cout << "[System] Dang nap Inverted Index...\n";
     docIndex.addDocument("doc1_tech.txt", "apple releases new application for macbook");
     docIndex.addDocument("doc2_food.txt", "how to make apple pie and banana cake");
     docIndex.addDocument("doc3_work.txt", "how to apply for a job and become a boss");
-    std::cout << "[System] Server san sang tiep nhan request!\n";
+    
+    std::cout << "[System] Server san sang tiep nhan request tu Node.js!\n";
     std::cout << "==================================================\n";
 
     // ==========================================
@@ -75,7 +58,6 @@ int main() {
     });
 
     // API 2: API Search tổng hợp
-    // Lưu ý: Dùng [&] để truyền tham chiếu của engine, cache, docIndex vào hàm Lambda
     CROW_ROUTE(app, "/api/search/<string>")([&](std::string rawInput){
         auto startQuery = std::chrono::high_resolution_clock::now();
         crow::json::wvalue response; // Object JSON trả về
@@ -113,11 +95,15 @@ int main() {
                     }
                 }
                 std::sort(fuzzyResults.begin(), fuzzyResults.end());
-                
+                std::set<std::string> seenWords;
                 int count = 0;
                 for (const auto& pair : fuzzyResults) {
                     if (count++ >= 3) break;
-                    suggestions.push_back(pair.second);
+                    if(seenWords.find(pair.second) == seenWords.end()){
+                        suggestions.push_back(pair.second);
+                        seenWords.insert(pair.second);
+                        count++;
+                    }
                 }
             }
 
@@ -139,12 +125,53 @@ int main() {
         response["cache_hit"] = isCacheHit;
         response["is_fuzzy_search"] = isFuzzy;
         
-        // Crow tự động convert std::vector sang mảng JSON
         response["suggestions"] = suggestions; 
         response["related_documents"] = docs;
         response["execution_time_ms"] = queryTime.count();
 
         return response;
+    });
+
+    // API 3: Nạp dữ liệu hàng loạt từ MongoDB qua Node.js
+    CROW_ROUTE(app, "/api/init_dictionary").methods(crow::HTTPMethod::Post)([&](const crow::request& req){
+        auto body = crow::json::load(req.body);
+        if(!body || !body.has("words")){
+            return crow::response(400, "Invalid JSON data");
+        }
+        
+        int count = 0;
+        
+        // Khóa bảo vệ bộ nhớ trước khi nạp data
+        std::lock_guard<std::mutex> lock(dataMutex);
+        
+        for(const auto& item : body["words"]){
+            std::string word = normalizeString(item.s());
+            if(!word.empty()){
+                engine.insert(word);
+                fullDictionary.push_back(word);
+                count++;
+            }
+        }
+        std::cout << "[System] Node.js da bom thanh cong " << count << " tu vung!\n";
+        return crow::response(200, "Tai du lieu thanh cong!");
+    });
+
+    // API 4: Đồng bộ 1 từ mới từ Node.js
+    CROW_ROUTE(app, "/api/add_word").methods(crow::HTTPMethod::Post)([&](const crow::request& req){
+        auto body = crow::json::load(req.body);
+        if (!body || !body.has("word")) {
+            return crow::response(400, "Invalid JSON");
+        }
+        
+        std::string newWord = normalizeString(body["word"].s());
+        if(!newWord.empty()){
+            // Khóa bảo vệ bộ nhớ trước khi chèn thêm từ
+            std::lock_guard<std::mutex> lock(dataMutex);
+
+            engine.insert(newWord);
+            fullDictionary.push_back(newWord);
+        }
+        return crow::response(200, "Da cap nhat tu vung moi vao Engine!");
     });
 
     // Chạy server tại cổng 8080 với chế độ đa luồng
