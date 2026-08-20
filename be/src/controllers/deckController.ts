@@ -3,6 +3,7 @@ import Deck from "../models/Deck.js";
 import Word from "../models/Word.js";
 import type { AuthRequest } from "../middleware/authMiddleware.js";
 import mongoose from "mongoose";
+import { toWordResponseDto } from "../dtos/word.dto.js";
 // Lấy danh sách tất cả các kho từ của người dùng
 export const getDecks = async (req: AuthRequest, res: express.Response) => {
   try {
@@ -60,7 +61,7 @@ export const getDeckById = async (req: AuthRequest, res: express.Response) => {
     res.status(200).json({
       deck,
       totalWords: wordsInDeck.length,
-      words: wordsInDeck,
+      words: wordsInDeck.map(toWordResponseDto),
     });
   } catch (error) {
     res.status(500).json({ error: "Lỗi tải chi tiết kho từ" });

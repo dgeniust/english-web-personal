@@ -3,15 +3,17 @@ import { Layout } from "../components/Layout";
 import type { GetAllWordsResponse, WordsResponse } from "../types/word";
 import AddWordForm from "../components/AddWordForm";
 import { wordService } from "../services/wordService";
-import CustomLoader from "../components/CustomLoader";
+import { WordCard } from "../components/WordCard"; // Import component vừa tạo
+import { CardActionBar } from "@/components/CardActionBar";
+import { useCardStore } from "@/store/useCardStore";
+import { useWordActionStore } from "@/store/useWordActionStore";
 
 export const Home = () => {
   const [dictionary, setDictionary] = useState<GetAllWordsResponse>();
   const [words, setWords] = useState<WordsResponse[]>([]);
 
-  // 1. Thêm state để quản lý trang hiện tại
   const [page, setPage] = useState<number>(1);
-  const limit = 3;
+  const limit = 16;
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   useEffect(() => {
@@ -33,7 +35,6 @@ export const Home = () => {
     fetchWords();
   }, [page]);
 
-  // Hàm chuyển trang
   const handlePrevPage = () => {
     if (page > 1) setPage((prev) => prev - 1);
   };
@@ -43,9 +44,11 @@ export const Home = () => {
       setPage((prev) => prev + 1);
     }
   };
-  if (isLoading) {
-    return <CustomLoader isLoading={isLoading} text="Đang tải dữ liệu..." />;
-  }
+
+  const { handleEdit, handleDelete, handleAddToCollection } =
+    useWordActionStore();
+  const { isSelected, toggleSelection } = useCardStore();
+  const selectedCards = useCardStore.getState().getSelectedCount();
   return (
     <Layout>
       <div className="flex flex-col gap-[64px]">
@@ -78,40 +81,54 @@ export const Home = () => {
 
         {/* --- GRID TỪ VỰNG SECTION --- */}
         <section className="flex flex-col gap-8 pb-12">
-          <h2 className="font-gelica-fallback text-[36px] text-[var(--color-cocoa-ink)] lowercase">
-            my collection
-          </h2>
+          <div className="flex items-center justify-between">
+            <h2 className="font-gelica-fallback text-[36px] text-[var(--color-cocoa-ink)] lowercase">
+              my collection
+            </h2>
+            {selectedCards > 0 && (
+              <span className="text-[16px] text-[var(--color-charcoal)] font-medium bg-[var(--color-dew-drop)] px-4 py-1.5 rounded-full border-[1.5px] border-[var(--color-charcoal)]">
+                Đã chọn: {selectedCards}
+              </span>
+            )}
+          </div>
 
           {isLoading ? (
-            <div className="text-center text-[var(--color-charcoal)] py-10">
-              Đang tải...
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-[12px]">
+              {Array.from({ length: limit }).map((_, index) => (
+                <div
+                  key={`skeleton-${index}`}
+                  className="bg-[var(--color-cream-paper)] border-[1.5px] border-[var(--color-charcoal)] rounded-[12px] p-[24px] shadow-[0_2px_20px_rgba(0,0,0,0.06)] flex flex-col gap-4"
+                >
+                  <div className="h-[33px] bg-gray-300/60 animate-pulse rounded w-3/4 pb-2"></div>
+                  <div className="flex flex-col gap-2 mt-1">
+                    <div className="h-[24px] w-[60px] bg-gray-300/60 animate-pulse rounded-[20px]"></div>
+                    <div className="flex flex-col gap-1.5 mt-2">
+                      <div className="h-[22px] w-full bg-gray-300/60 animate-pulse rounded"></div>
+                      <div className="h-[22px] w-4/5 bg-gray-300/60 animate-pulse rounded"></div>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           ) : (
             <>
+              <CardActionBar />
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-[12px]">
                 {words &&
                   words.map((item) => (
-                    <div
-                      key={item.id || item.term} // Thay item.id bằng item._id nếu dùng _id từ MongoDB
-                      className="bg-[var(--color-cream-paper)] border-[1.5px] border-[var(--color-charcoal)] rounded-[12px] p-[24px] shadow-[0_2px_20px_rgba(0,0,0,0.06)] flex flex-col gap-4 hover:rotate-1 transition-transform"
-                    >
-                      <h3 className="font-gelica-fallback text-[28px] text-[var(--color-cocoa-ink)] lowercase leading-[1.2] border-b-[1.5px] border-dashed border-[var(--color-charcoal)] pb-2">
-                        {item.term}
-                      </h3>
-
-                      <div className="flex flex-col gap-2 mt-1">
-                        <span className="self-start border-[1px] border-[var(--color-sprout-sticker)] text-[var(--color-charcoal)] text-[14px] rounded-[20px] px-3 py-0.5">
-                          {item.type}
-                        </span>
-                        <p className="text-[18px] text-[var(--color-charcoal)] mt-1 font-handwriting text-[22px]">
-                          {item.meaning}
-                        </p>
-                      </div>
-                    </div>
+                    <WordCard
+                      key={item.id || item.term}
+                      item={item}
+                      isSelected={isSelected(item.id)}
+                      onSelect={toggleSelection}
+                      onEdit={handleEdit}
+                      onDelete={handleDelete}
+                      onAddToCollection={handleAddToCollection}
+                    />
                   ))}
               </div>
 
-              {/* 3. PAGINATION CONTROLS */}
+              {/* PAGINATION CONTROLS */}
               {dictionary?.pagination &&
                 dictionary.pagination.totalPages > 1 && (
                   <div className="flex items-center justify-center gap-4 mt-8">
